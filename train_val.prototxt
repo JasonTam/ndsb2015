@@ -94,7 +94,7 @@ layers {
   weight_decay: 1
   weight_decay: 0
   convolution_param {
-    num_output: 256
+    num_output: 64
     pad: 2
     kernel_size: 5
     group: 2
@@ -205,7 +205,7 @@ layers {
   weight_decay: 1
   weight_decay: 0
   convolution_param {
-    num_output: 256
+    num_output: 64
     pad: 1
     kernel_size: 3
     group: 2
@@ -318,7 +318,7 @@ layers {
   weight_decay: 1
   weight_decay: 0
   inner_product_param {
-    num_output: 1000
+    num_output: 121
     weight_filler {
       type: "gaussian"
       std: 0.01

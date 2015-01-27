@@ -9,6 +9,6 @@ display: 100
 max_iter: 5000
 momentum: 0.
 weight_decay: 0.0005
-snapshot: 1000
-snapshot_prefix: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/caffenet_train"
+snapshot: 2500
+snapshot_prefix: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/models/caffenet_train"
 solver_mode: GPU

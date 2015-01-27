@@ -1,7 +1,7 @@
 name: "CaffeNet"
 input: "data"
 input_dim: 10
-input_dim: 3
+input_dim: 1
 input_dim: 57
 input_dim: 57
 layers {
@@ -49,7 +49,7 @@ layers {
   bottom: "norm1"
   top: "conv2"
   convolution_param {
-    num_output: 256
+    num_output: 64
     pad: 2
     kernel_size: 5
     group: 2
@@ -124,7 +124,7 @@ layers {
   bottom: "conv4"
   top: "conv5"
   convolution_param {
-    num_output: 256
+    num_output: 64
     pad: 1
     kernel_size: 3
     group: 2
@@ -201,7 +201,7 @@ layers {
   bottom: "fc7"
   top: "fc8"
   inner_product_param {
-    num_output: 1000
+    num_output: 121
   }
 }
 layers {
