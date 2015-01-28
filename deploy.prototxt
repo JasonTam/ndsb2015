@@ -1,9 +1,9 @@
 name: "CaffeNet"
 input: "data"
-input_dim: 10
+input_dim: 256
 input_dim: 1
-input_dim: 57
-input_dim: 57
+input_dim: 42
+input_dim: 42
 layers {
   name: "conv1"
   type: CONVOLUTION
@@ -11,7 +11,7 @@ layers {
   top: "conv1"
   convolution_param {
     num_output: 96
-    kernel_size: 11
+    kernel_size: 5
     stride: 4
   }
 }
@@ -33,25 +33,14 @@ layers {
   }
 }
 layers {
-  name: "norm1"
-  type: LRN
-  bottom: "pool1"
-  top: "norm1"
-  lrn_param {
-    local_size: 5
-    alpha: 0.0001
-    beta: 0.75
-  }
-}
-layers {
   name: "conv2"
   type: CONVOLUTION
-  bottom: "norm1"
+  bottom: "pool1"
   top: "conv2"
   convolution_param {
-    num_output: 64
+    num_output: 128
     pad: 2
-    kernel_size: 5
+    kernel_size: 3
     group: 2
   }
 }
@@ -62,36 +51,15 @@ layers {
   top: "conv2"
 }
 layers {
-  name: "pool2"
-  type: POOLING
-  bottom: "conv2"
-  top: "pool2"
-  pooling_param {
-    pool: MAX
-    kernel_size: 3
-    stride: 2
-  }
-}
-layers {
-  name: "norm2"
-  type: LRN
-  bottom: "pool2"
-  top: "norm2"
-  lrn_param {
-    local_size: 5
-    alpha: 0.0001
-    beta: 0.75
-  }
-}
-layers {
   name: "conv3"
   type: CONVOLUTION
-  bottom: "norm2"
+  bottom: "conv2"
   top: "conv3"
   convolution_param {
-    num_output: 384
+    num_output: 128
     pad: 1
     kernel_size: 3
+    group: 2
   }
 }
 layers {
@@ -101,46 +69,10 @@ layers {
   top: "conv3"
 }
 layers {
-  name: "conv4"
-  type: CONVOLUTION
-  bottom: "conv3"
-  top: "conv4"
-  convolution_param {
-    num_output: 384
-    pad: 1
-    kernel_size: 3
-    group: 2
-  }
-}
-layers {
-  name: "relu4"
-  type: RELU
-  bottom: "conv4"
-  top: "conv4"
-}
-layers {
-  name: "conv5"
-  type: CONVOLUTION
-  bottom: "conv4"
-  top: "conv5"
-  convolution_param {
-    num_output: 64
-    pad: 1
-    kernel_size: 3
-    group: 2
-  }
-}
-layers {
-  name: "relu5"
-  type: RELU
-  bottom: "conv5"
-  top: "conv5"
-}
-layers {
-  name: "pool5"
+  name: "pool2"
   type: POOLING
-  bottom: "conv5"
-  top: "pool5"
+  bottom: "conv3"
+  top: "pool2"
   pooling_param {
     pool: MAX
     kernel_size: 3
@@ -150,56 +82,56 @@ layers {
 layers {
   name: "fc6"
   type: INNER_PRODUCT
-  bottom: "pool5"
-  top: "fc6"
+  bottom: "pool2"
+  top: "fc1"
   inner_product_param {
-    num_output: 4096
+    num_output: 512
   }
 }
 layers {
-  name: "relu6"
+  name: "relu4"
   type: RELU
-  bottom: "fc6"
-  top: "fc6"
+  bottom: "fc1"
+  top: "fc1"
 }
 layers {
-  name: "drop6"
+  name: "drop1"
   type: DROPOUT
-  bottom: "fc6"
-  top: "fc6"
+  bottom: "fc1"
+  top: "fc1"
   dropout_param {
     dropout_ratio: 0.5
   }
 }
 layers {
-  name: "fc7"
+  name: "fc2"
   type: INNER_PRODUCT
-  bottom: "fc6"
-  top: "fc7"
+  bottom: "fc1"
+  top: "fc2"
   inner_product_param {
-    num_output: 4096
+    num_output: 512
   }
 }
 layers {
-  name: "relu7"
+  name: "relu5"
   type: RELU
-  bottom: "fc7"
-  top: "fc7"
+  bottom: "fc2"
+  top: "fc2"
 }
 layers {
-  name: "drop7"
+  name: "drop2"
   type: DROPOUT
-  bottom: "fc7"
-  top: "fc7"
+  bottom: "fc2"
+  top: "fc2"
   dropout_param {
     dropout_ratio: 0.5
   }
 }
 layers {
-  name: "fc8"
+  name: "fc3"
   type: INNER_PRODUCT
-  bottom: "fc7"
-  top: "fc8"
+  bottom: "fc2"
+  top: "fc3"
   inner_product_param {
     num_output: 121
   }
@@ -207,6 +139,6 @@ layers {
 layers {
   name: "prob"
   type: SOFTMAX
-  bottom: "fc8"
+  bottom: "fc3"
   top: "prob"
 }
