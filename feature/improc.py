@@ -66,6 +66,8 @@ def bw_labels(im_bw):
 def feat_potpourri(region_prop):
     props = ['area', 'convex_area', 'eccentricity', 'extent', 'filled_area',
              'inertia_tensor', 'inertia_tensor_eigvals', 'orientation', 'perimeter', 'solidity']
+    if not region_prop:
+        return np.zeros(14)
     feats_many = np.concatenate(
         [np.array(eval('region_prop.' + prop)).flatten() for prop in props])
     return feats_many
