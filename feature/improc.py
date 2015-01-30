@@ -62,8 +62,18 @@ def bw_labels(im_bw):
 
     return label_list
 
+
+def feat_potpourri(region_prop):
+    props = ['area', 'convex_area', 'eccentricity', 'extent', 'filled_area',
+             'inertia_tensor', 'inertia_tensor_eigvals', 'orientation', 'perimeter', 'solidity']
+    feats_many = np.concatenate(
+        [np.array(eval('region_prop.' + prop)).flatten() for prop in props])
+    return feats_many
+
+
 if __name__ == '__main__':
-    f_dir = 'data/'
+    curdir, _ = os.path.split(__file__)
+    f_dir = os.path.join(curdir, '../data/')
     # f_name = '55511.jpg'
     f_name = '116800.jpg'
     f_path = os.path.join(f_dir, f_name)
@@ -71,9 +81,10 @@ if __name__ == '__main__':
     im_bw = gray_to_bw(im)
     labels = bw_labels(im_bw)
     region_max = get_max_region(labels, im_bw)
-    feat = get_minor_major_ratio(region_max)
-    print feat
-
+    mmr = get_minor_major_ratio(region_max)
+    print mmr
+    feats_many = feat_potpourri(region_max)
+    print feats_many
 
     plt.ion()
     fig, (ax1, ax2) = plt.subplots(1, 2)
