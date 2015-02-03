@@ -1,42 +1,63 @@
 name: "CaffeNet"
 layers {
-  name: "data"
+  name: "labeled_data"
   type: DATA
-  top: "data"
+  top: "labeled_data"
   top: "label"
   data_param {
-    source: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/data/ndsb_train_lmdb"
+    source: "./data/augmented/ndsb_train_lmdb"
     backend: LMDB
     batch_size: 256
   }
   transform_param {
-    crop_size: 42
-    mean_file: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/ndsb_mean.binaryproto"
+    crop_size: 57
+    mean_file: "./data/64x64/ndsb_mean.binaryproto"
     mirror: true
   }
   include: { phase: TRAIN }
 }
 layers {
-  name: "data"
+  name: "unlabeled_data"
   type: DATA
-  top: "data"
-  top: "label"
+  top: "unlabeled_data"
   data_param {
-    source: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/data/ndsb_test_lmdb"
+    source: "./data/augmented/ndsb_unlabeledtest_lmdb"
     backend: LMDB
-    batch_size: 50
+    batch_size: 256
   }
   transform_param {
-    crop_size: 42
-    mean_file: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/ndsb_mean.binaryproto"
+    crop_size: 57
+    mean_file: "./data/64x64/ndsb_mean.binaryproto"
+    mirror: true
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "labeled_data"
+  type: DATA
+  top: "labeled_data"
+  top: "label"
+  data_param {
+    source: "./data/64x64/ndsb_test_lmdb"
+    backend: LMDB
+    batch_size: 256
+  }
+  transform_param {
+    crop_size: 57
+    mean_file: "./data/64x64/ndsb_mean.binaryproto"
     mirror: false
   }
   include: { phase: TEST }
 }
+
+
+
+
+
 layers {
   name: "conv1"
   type: CONVOLUTION
-  bottom: "data"
+  bottom: "labeled_data"
   top: "conv1"
   blobs_lr: 1
   blobs_lr: 2
@@ -55,6 +76,8 @@ layers {
       value: 0
     }
   }
+  param: "conv1_w"
+  param: "conv1_b"
 }
 layers {
   name: "relu1"
@@ -83,9 +106,9 @@ layers {
   weight_decay: 1
   weight_decay: 0
   convolution_param {
-    num_output: 128
+    num_output: 256
     pad: 2
-    kernel_size: 3
+    kernel_size: 5
     group: 2
     weight_filler {
       type: "gaussian"
@@ -96,6 +119,8 @@ layers {
       value: 1
     }
   }
+  param: "conv2_w"
+  param: "conv2_b"
 }
 layers {
   name: "relu2"
@@ -104,16 +129,27 @@ layers {
   top: "conv2"
 }
 layers {
+  name: "pool2"
+  type: POOLING
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layers {
   name: "conv3"
   type: CONVOLUTION
-  bottom: "conv2"
+  bottom: "pool2"
   top: "conv3"
   blobs_lr: 1
   blobs_lr: 2
   weight_decay: 1
   weight_decay: 0
   convolution_param {
-    num_output: 128
+    num_output: 256
     pad: 1
     kernel_size: 3
     group: 2
@@ -126,6 +162,8 @@ layers {
       value: 1
     }
   }
+  param: "conv3_w"
+  param: "conv3_b"
 }
 layers {
   name: "relu3"
@@ -134,10 +172,10 @@ layers {
   top: "conv3"
 }
 layers {
-  name: "pool2"
+  name: "pool3"
   type: POOLING
   bottom: "conv3"
-  top: "pool2"
+  top: "pool3"
   pooling_param {
     pool: MAX
     kernel_size: 3
@@ -145,16 +183,16 @@ layers {
   }
 }
 layers {
-  name: "fc6"
+  name: "fc1"
   type: INNER_PRODUCT
-  bottom: "pool2"
+  bottom: "pool3"
   top: "fc1"
   blobs_lr: 1
   blobs_lr: 2
   weight_decay: 1
   weight_decay: 0
   inner_product_param {
-    num_output: 512
+    num_output: 2048
     weight_filler {
       type: "gaussian"
       std: 0.005
@@ -164,6 +202,8 @@ layers {
       value: 1
     }
   }
+  param: "fc1_w"
+  param: "fc1_b"
 }
 layers {
   name: "relu4"
@@ -190,7 +230,7 @@ layers {
   weight_decay: 1
   weight_decay: 0
   inner_product_param {
-    num_output: 512
+    num_output: 2048
     weight_filler {
       type: "gaussian"
       std: 0.005
@@ -200,6 +240,8 @@ layers {
       value: 1
     }
   }
+  param: "fc2_w"
+  param: "fc2_b"
 }
 layers {
   name: "relu5"
@@ -236,7 +278,246 @@ layers {
       value: 1
     }
   }
+  param: "fc3_w"
+  param: "fc3_b"
 }
+
+
+
+layers {
+  name: "conv1_p"
+  type: CONVOLUTION
+  bottom: "unlabeled_data"
+  top: "conv1_p"
+  blobs_lr: 0.0
+  blobs_lr: 0.0
+  convolution_param {
+    num_output: 96
+    kernel_size: 5
+    stride: 4
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  param: "conv1_w"
+  param: "conv1_b"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "relu1_p"
+  type: RELU
+  bottom: "conv1_p"
+  top: "conv1_p"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "pool1_p"
+  type: POOLING
+  bottom: "conv1_p"
+  top: "pool1_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "conv2_p"
+  type: CONVOLUTION
+  bottom: "pool1_p"
+  top: "conv2_p"
+  blobs_lr: 0.0
+  blobs_lr: 0.0
+  convolution_param {
+    num_output: 256
+    pad: 2
+    kernel_size: 5
+    group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+  param: "conv2_w"
+  param: "conv2_b"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "relu2_p"
+  type: RELU
+  bottom: "conv2_p"
+  top: "conv2_p"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "pool2_p"
+  type: POOLING
+  bottom: "conv2_p"
+  top: "pool2_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "conv3_p"
+  type: CONVOLUTION
+  bottom: "pool2_p"
+  top: "conv3_p"
+  blobs_lr: 0.0
+  blobs_lr: 0.0
+  convolution_param {
+    num_output: 256
+    pad: 1
+    kernel_size: 3
+    group: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+  param: "conv3_w"
+  param: "conv3_b"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "relu3_p"
+  type: RELU
+  bottom: "conv3_p"
+  top: "conv3_p"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "pool3_p"
+  type: POOLING
+  bottom: "conv3_p"
+  top: "pool3_p"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "fc1_p"
+  type: INNER_PRODUCT
+  bottom: "pool3_p"
+  top: "fc1_p"
+  blobs_lr: 0.0
+  blobs_lr: 0.0
+  inner_product_param {
+    num_output: 2048
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+  param: "fc1_w"
+  param: "fc1_b"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "relu4_p"
+  type: RELU
+  bottom: "fc1_p"
+  top: "fc1_p"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "drop1_p"
+  type: DROPOUT
+  bottom: "fc1_p"
+  top: "fc1_p"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "fc2_p"
+  type: INNER_PRODUCT
+  bottom: "fc1_p"
+  top: "fc2_p"
+  blobs_lr: 0.0
+  blobs_lr: 0.0
+  inner_product_param {
+    num_output: 2048
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+  param: "fc2_w"
+  param: "fc2_b"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "relu5_p"
+  type: RELU
+  bottom: "fc2_p"
+  top: "fc2_p"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "drop2_p"
+  type: DROPOUT
+  bottom: "fc2_p"
+  top: "fc2_p"
+  dropout_param {
+    dropout_ratio: 0.5
+  }
+  include: { phase: TRAIN }
+}
+layers {
+  name: "fc3_p"
+  type: INNER_PRODUCT
+  bottom: "fc2_p"
+  top: "fc3_p"
+  blobs_lr: 0.0
+  blobs_lr: 0.0
+  inner_product_param {
+    num_output: 121
+    weight_filler {
+      type: "gaussian"
+      std: 0.005
+    }
+    bias_filler {
+      type: "constant"
+      value: 1
+    }
+  }
+  param: "fc3_w"
+  param: "fc3_b"
+  include: { phase: TRAIN }
+}
+
+
+
 layers {
   name: "accuracy"
   type: ACCURACY
@@ -246,9 +527,26 @@ layers {
   include: { phase: TEST }
 }
 layers {
-  name: "loss"
+  name: "labled_loss"
   type: SOFTMAX_LOSS
   bottom: "fc3"
   bottom: "label"
-  top: "loss"
+  top: "labled_loss"
+  loss_weight: 1
+}
+layers {
+  name: "pseudo_label"
+  type: ARGMAX
+  bottom: "fc3_p"
+  top: "pseudo_label"
+  include: { phase: TRAIN }
+}
+layers {
+  name: "unlabled_loss"
+  type: SOFTMAX_LOSS
+  bottom: "fc3_p"
+  bottom: "pseudo_label"
+  top: "unlabeled_loss"
+  loss_weight: 0.1
+  include: { phase: TRAIN }
 }

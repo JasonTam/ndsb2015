@@ -2,8 +2,8 @@ name: "CaffeNet"
 input: "data"
 input_dim: 256
 input_dim: 1
-input_dim: 42
-input_dim: 42
+input_dim: 57
+input_dim: 57
 layers {
   name: "conv1"
   type: CONVOLUTION
@@ -38,9 +38,9 @@ layers {
   bottom: "pool1"
   top: "conv2"
   convolution_param {
-    num_output: 128
+    num_output: 256
     pad: 2
-    kernel_size: 3
+    kernel_size: 5
     group: 2
   }
 }
@@ -51,12 +51,23 @@ layers {
   top: "conv2"
 }
 layers {
+  name: "pool2"
+  type: POOLING
+  bottom: "conv2"
+  top: "pool2"
+  pooling_param {
+    pool: MAX
+    kernel_size: 3
+    stride: 2
+  }
+}
+layers {
   name: "conv3"
   type: CONVOLUTION
-  bottom: "conv2"
+  bottom: "pool2"
   top: "conv3"
   convolution_param {
-    num_output: 128
+    num_output: 256
     pad: 1
     kernel_size: 3
     group: 2
@@ -72,7 +83,7 @@ layers {
   name: "pool2"
   type: POOLING
   bottom: "conv3"
-  top: "pool2"
+  top: "pool3"
   pooling_param {
     pool: MAX
     kernel_size: 3
@@ -80,12 +91,12 @@ layers {
   }
 }
 layers {
-  name: "fc6"
+  name: "fc1"
   type: INNER_PRODUCT
-  bottom: "pool2"
+  bottom: "pool3"
   top: "fc1"
   inner_product_param {
-    num_output: 512
+    num_output: 2048
   }
 }
 layers {
@@ -109,7 +120,7 @@ layers {
   bottom: "fc1"
   top: "fc2"
   inner_product_param {
-    num_output: 512
+    num_output: 2048
   }
 }
 layers {

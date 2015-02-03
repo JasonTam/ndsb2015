@@ -1,4 +1,4 @@
-net: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/train_val.prototxt"
+net: "./train_val.prototxt"
 test_iter: 1000
 test_interval: 1000
 base_lr: 0.01
@@ -6,9 +6,9 @@ lr_policy: "step"
 gamma: 0.1
 stepsize: 10000
 display: 100
-max_iter: 20000
-momentum: 0.
+max_iter: 40000
+momentum: 0.9
 weight_decay: 0.0005
 snapshot: 5000
-snapshot_prefix: "/afs/ee.cooper.edu/user/t/a/tam8/documents/ndsb2015/models/caffenet_train"
+snapshot_prefix: "./models/caffenet_train"
 solver_mode: GPU
