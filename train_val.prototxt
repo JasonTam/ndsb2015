@@ -547,6 +547,6 @@ layers {
   bottom: "fc3_p"
   bottom: "pseudo_label"
   top: "unlabeled_loss"
-  loss_weight: 0.1
+  loss_weight: 0.5
   include: { phase: TRAIN }
 }
