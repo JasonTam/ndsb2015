@@ -1,0 +1,43 @@
+I0204 03:01:37.928967 25144 net.cpp:394] accuracy <- label_labeled_data_1_split_0
+I0204 03:01:37.928977 25144 net.cpp:356] accuracy -> accuracy
+I0204 03:01:37.928987 25144 net.cpp:96] Setting up accuracy
+I0204 03:01:37.928994 25144 net.cpp:103] Top shape: 1 1 1 1 (1)
+I0204 03:01:37.929004 25144 net.cpp:67] Creating Layer labled_loss
+I0204 03:01:37.929011 25144 net.cpp:394] labled_loss <- fc3_fc3_0_split_1
+I0204 03:01:37.929020 25144 net.cpp:394] labled_loss <- label_labeled_data_1_split_1
+I0204 03:01:37.929029 25144 net.cpp:356] labled_loss -> labled_loss
+I0204 03:01:37.929041 25144 net.cpp:96] Setting up labled_loss
+I0204 03:01:37.929090 25144 net.cpp:103] Top shape: 1 1 1 1 (1)
+I0204 03:01:37.929101 25144 net.cpp:109]     with loss weight 1
+I0204 03:01:37.929116 25144 net.cpp:170] labled_loss needs backward computation.
+I0204 03:01:37.929158 25144 net.cpp:172] accuracy does not need backward computation.
+I0204 03:01:37.929167 25144 net.cpp:170] fc3_fc3_0_split needs backward computation.
+I0204 03:01:37.929175 25144 net.cpp:170] fc3 needs backward computation.
+I0204 03:01:37.929183 25144 net.cpp:170] drop2 needs backward computation.
+I0204 03:01:37.929190 25144 net.cpp:170] relu5 needs backward computation.
+I0204 03:01:37.929198 25144 net.cpp:170] fc2 needs backward computation.
+I0204 03:01:37.929204 25144 net.cpp:170] drop1 needs backward computation.
+I0204 03:01:37.929211 25144 net.cpp:170] relu4 needs backward computation.
+I0204 03:01:37.929219 25144 net.cpp:170] fc1 needs backward computation.
+I0204 03:01:37.929226 25144 net.cpp:170] pool3 needs backward computation.
+I0204 03:01:37.929234 25144 net.cpp:170] relu3 needs backward computation.
+I0204 03:01:37.929240 25144 net.cpp:170] conv3 needs backward computation.
+I0204 03:01:37.929247 25144 net.cpp:170] pool2 needs backward computation.
+I0204 03:01:37.929255 25144 net.cpp:170] relu2 needs backward computation.
+I0204 03:01:37.929261 25144 net.cpp:170] conv2 needs backward computation.
+I0204 03:01:37.929268 25144 net.cpp:170] pool1 needs backward computation.
+I0204 03:01:37.929275 25144 net.cpp:170] relu1 needs backward computation.
+I0204 03:01:37.929282 25144 net.cpp:170] conv1 needs backward computation.
+I0204 03:01:37.929291 25144 net.cpp:172] label_labeled_data_1_split does not need backward computation.
+I0204 03:01:37.929298 25144 net.cpp:172] labeled_data does not need backward computation.
+I0204 03:01:37.929306 25144 net.cpp:208] This network produces output accuracy
+I0204 03:01:37.929312 25144 net.cpp:208] This network produces output labled_loss
+I0204 03:01:37.929329 25144 net.cpp:467] Collecting Learning Rate and Weight Decay.
+I0204 03:01:37.929339 25144 net.cpp:219] Network initialization done.
+I0204 03:01:37.929347 25144 net.cpp:220] Memory required for data: 92666888
+I0204 03:01:37.929458 25144 solver.cpp:41] Solver scaffolding done.
+I0204 03:01:37.929471 25144 caffe.cpp:115] Finetuning from ./models/caffenet_train_fine2_iter_10000.caffemodel
+I0204 03:01:37.973825 25144 solver.cpp:160] Solving CaffeNet
+I0204 03:01:37.973871 25144 solver.cpp:161] Learning Rate Policy: step
+I0204 03:01:37.973908 25144 solver.cpp:264] Iteration 0, Testing net (#0)
+

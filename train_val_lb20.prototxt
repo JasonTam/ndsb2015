@@ -5,7 +5,7 @@ layers {
   top: "labeled_data"
   top: "label"
   data_param {
-    source: "./data/augmented/ndsb_train_lmdb"
+    source: "./data/augmented/ndsb_trainall_lmdb"
     backend: LMDB
     batch_size: 256
   }
@@ -14,40 +14,21 @@ layers {
     mean_file: "./data/64x64/ndsb_mean.binaryproto"
     mirror: true
   }
-  include: { phase: TRAIN }
 }
 layers {
   name: "unlabeled_data"
   type: DATA
   top: "unlabeled_data"
   data_param {
-    source: "./data/augmented/ndsb_unlabeledtest_lmdb"
+    source: "./data/augmented/ndsb_bigtest_lmdb"
     backend: LMDB
-    batch_size: 256
+    batch_size: 512
   }
   transform_param {
     crop_size: 57
-    mean_file: "./data/64x64/ndsb_mean.binaryproto"
+    mean_file: "./data/64x64/ndsb_mean_test.binaryproto"
     mirror: true
   }
-  include: { phase: TRAIN }
-}
-layers {
-  name: "labeled_data"
-  type: DATA
-  top: "labeled_data"
-  top: "label"
-  data_param {
-    source: "./data/64x64/ndsb_test_lmdb"
-    backend: LMDB
-    batch_size: 256
-  }
-  transform_param {
-    crop_size: 57
-    mean_file: "./data/64x64/ndsb_mean.binaryproto"
-    mirror: false
-  }
-  include: { phase: TEST }
 }
 
 
@@ -306,14 +287,12 @@ layers {
   }
   param: "conv1_w"
   param: "conv1_b"
-  include: { phase: TRAIN }
 }
 layers {
   name: "relu1_p"
   type: RELU
   bottom: "conv1_p"
   top: "conv1_p"
-  include: { phase: TRAIN }
 }
 layers {
   name: "pool1_p"
@@ -325,7 +304,6 @@ layers {
     kernel_size: 3
     stride: 2
   }
-  include: { phase: TRAIN }
 }
 layers {
   name: "conv2_p"
@@ -350,14 +328,12 @@ layers {
   }
   param: "conv2_w"
   param: "conv2_b"
-  include: { phase: TRAIN }
 }
 layers {
   name: "relu2_p"
   type: RELU
   bottom: "conv2_p"
   top: "conv2_p"
-  include: { phase: TRAIN }
 }
 layers {
   name: "pool2_p"
@@ -369,7 +345,6 @@ layers {
     kernel_size: 3
     stride: 2
   }
-  include: { phase: TRAIN }
 }
 layers {
   name: "conv3_p"
@@ -394,14 +369,12 @@ layers {
   }
   param: "conv3_w"
   param: "conv3_b"
-  include: { phase: TRAIN }
 }
 layers {
   name: "relu3_p"
   type: RELU
   bottom: "conv3_p"
   top: "conv3_p"
-  include: { phase: TRAIN }
 }
 layers {
   name: "pool3_p"
@@ -413,7 +386,6 @@ layers {
     kernel_size: 3
     stride: 2
   }
-  include: { phase: TRAIN }
 }
 layers {
   name: "fc1_p"
@@ -435,14 +407,12 @@ layers {
   }
   param: "fc1_w"
   param: "fc1_b"
-  include: { phase: TRAIN }
 }
 layers {
   name: "relu4_p"
   type: RELU
   bottom: "fc1_p"
   top: "fc1_p"
-  include: { phase: TRAIN }
 }
 layers {
   name: "drop1_p"
@@ -452,7 +422,6 @@ layers {
   dropout_param {
     dropout_ratio: 0.5
   }
-  include: { phase: TRAIN }
 }
 layers {
   name: "fc2_p"
@@ -474,14 +443,12 @@ layers {
   }
   param: "fc2_w"
   param: "fc2_b"
-  include: { phase: TRAIN }
 }
 layers {
   name: "relu5_p"
   type: RELU
   bottom: "fc2_p"
   top: "fc2_p"
-  include: { phase: TRAIN }
 }
 layers {
   name: "drop2_p"
@@ -491,7 +458,6 @@ layers {
   dropout_param {
     dropout_ratio: 0.5
   }
-  include: { phase: TRAIN }
 }
 layers {
   name: "fc3_p"
@@ -513,19 +479,10 @@ layers {
   }
   param: "fc3_w"
   param: "fc3_b"
-  include: { phase: TRAIN }
 }
 
 
 
-layers {
-  name: "accuracy"
-  type: ACCURACY
-  bottom: "fc3"
-  bottom: "label"
-  top: "accuracy"
-  include: { phase: TEST }
-}
 layers {
   name: "labled_loss"
   type: SOFTMAX_LOSS
@@ -539,7 +496,6 @@ layers {
   type: ARGMAX
   bottom: "fc3_p"
   top: "pseudo_label"
-  include: { phase: TRAIN }
 }
 layers {
   name: "unlabled_loss"
@@ -547,6 +503,5 @@ layers {
   bottom: "fc3_p"
   bottom: "pseudo_label"
   top: "unlabeled_loss"
-  loss_weight: 3.0
-  include: { phase: TRAIN }
+  loss_weight: 0.75
 }
