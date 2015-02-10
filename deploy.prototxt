@@ -38,7 +38,7 @@ layers {
   bottom: "pool1"
   top: "conv2"
   convolution_param {
-    num_output: 256
+    num_output: 128
     pad: 2
     kernel_size: 5
     group: 2
@@ -67,7 +67,7 @@ layers {
   bottom: "pool2"
   top: "conv3"
   convolution_param {
-    num_output: 256
+    num_output: 128
     pad: 1
     kernel_size: 3
     group: 2
@@ -80,7 +80,7 @@ layers {
   top: "conv3"
 }
 layers {
-  name: "pool2"
+  name: "pool3"
   type: POOLING
   bottom: "conv3"
   top: "pool3"
@@ -96,7 +96,7 @@ layers {
   bottom: "pool3"
   top: "fc1"
   inner_product_param {
-    num_output: 2048
+    num_output: 512
   }
 }
 layers {
@@ -120,7 +120,7 @@ layers {
   bottom: "fc1"
   top: "fc2"
   inner_product_param {
-    num_output: 2048
+    num_output: 512
   }
 }
 layers {
