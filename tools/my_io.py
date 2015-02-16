@@ -37,4 +37,28 @@ def load_lmdb(db_path):
         data = [(k.split('_', 1)[1], bs_to_im(v), bs_to_l(v)) for k, v in cursor]
     return data
 
+def load_lmdb_chunk(db_path, start_key='', n=None):
+    """
+    :param start: key to start at (excluding that key)
+    :param n: number of entries to retrieve after the start key
+    """
+    db = lmdb.open(db_path, readonly=True)
+    with db.begin() as txn:
+        cursor = txn.cursor()
+        cursor.set_range(start_key)
+        data = [(k.split('_', 1)[1], bs_to_im(v), bs_to_l(v)) for ii, (k, v) in enumerate(cursor) if ii < n]
+       
+        cursor.set_range(start_key)
+        for ii in range(n):
+            cursor.next()
+            if not cursor:
+                continue
+        next_key = cursor.key()
+    return data, next_key
+
+
+
+
+
+
 
