@@ -47,7 +47,7 @@ def write_weight_to_net(w, f_path=NET):
         f_data = f.readlines()
 
     # Change the line with the PL loss weight
-    line_n = 549    # The line number we're going to replace
+    line_n = 691    # The line number we're going to replace
     new_line = '  loss_weight: ' + str(w) + '\n'
     f_data[line_n] = new_line
 
