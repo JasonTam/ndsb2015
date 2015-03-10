@@ -6,12 +6,12 @@ PIXELS = 64
 def transform(im_list):
 #     Xb, yb = super(DataAugmentationBatchIterator, self).transform(Xb, yb)
     augmentation_params = {
-        #'zoom_range': (0.9, 1.1),
-        'zoom_range': (0.8, 1.2),
+        'zoom_range': (0.9, 1.1),
+        #'zoom_range': (0.8, 1.2),
         'rotation_range': (0, 360),
-        'shear_range': (0, 30),
-        #'translation_range': (-4, 4),
-        'translation_range': (-10, 10),
+        'shear_range': (0, 20),
+        'translation_range': (-4, 4),
+        #'translation_range': (-10, 10),
     }
 
     IMAGE_WIDTH = PIXELS

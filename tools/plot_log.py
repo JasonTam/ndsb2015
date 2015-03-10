@@ -128,7 +128,7 @@ def plot_chart(chart_type, path_to_png, path_to_log_list):
 	##        use_marker = False
 		use_marker = True
 		if not use_marker:
-		    plt.plot(data[0], data[1], label = label, color = color,
+		    plt.plot(data[0], data[1], label = label, #color = color,
 		             linewidth = linewidth)
 		else:
 		    ok = False

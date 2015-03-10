@@ -2,6 +2,7 @@ import os
 import subprocess
 import my_io
 import threading
+import time
 NDSB_DIR = '/media/raid_arr/data/ndsb/config'
 # TRAIN_SCRIPT = os.path.join(NDSB_DIR, 'train_pl.sh')
 # RESUME_SCRIPT = os.path.join(NDSB_DIR, 'resume_training_pl.sh')
@@ -9,9 +10,10 @@ SOLVER = os.path.join(NDSB_DIR, 'solver.prototxt')
 NET = os.path.join(NDSB_DIR, 'train_val.prototxt')
 CAFFE = '/afs/ee.cooper.edu/user/t/a/tam8/documents/caffe/build/tools/caffe'
 MODELS_DIR = '/media/raid_arr/data/ndsb/models'
-snapshot_prefix = 'alexmod_bruteaug_fold0_iter_'
+BUFFER_PATH = '/media/raid_arr/tmp/aug_buffer/'
+snapshot_prefix = 'alex11_oriennormaug_fold0_iter_'
 MAX_ITER = 100000    # global max (not per step)
-STEP = 100
+STEP = 250      # MAKE SURE THE SNAPSHOT PARAM IN SOLVER MATCHES THIS
 
 
 
@@ -47,27 +49,44 @@ get_last_iter = lambda:  max({int(os.path.splitext(f)[0].rsplit('_', 1)[1])
 
 last_saved_iter = get_last_iter()  
 
-for ii in range(last_saved_iter, MAX_ITER+1, STEP):
+#for ii in range(last_saved_iter, MAX_ITER+1, STEP):
+last_saved_iter = get_last_iter()
+while last_saved_iter < MAX_ITER:
     last_saved_iter = get_last_iter()  # lol
-    write_max_iter_to_solver(ii + STEP) # make caffe stop at the next step
-    print 'ITER:\t', ii
+    write_max_iter_to_solver(last_saved_iter + STEP) # make caffe stop at the next step
+    print 'ITER:\t', last_saved_iter
     
+    # Get next job from ghetto queue
+    jobs_int = None
+    while not jobs_int:
+        jobs_int = [int(p) for p in os.walk(BUFFER_PATH).next()[1]]
+        if not jobs_int:
+            print 'No jobs in queue! - waiting 10 sec'
+            time.sleep(10)
+    next_job = str(min(jobs_int))
+    next_job_path = os.path.join(BUFFER_PATH, next_job)
+
+    # Remove the last finished job
     subprocess.call(['rm', '-rf', '/dev/shm/train0_aug_lvl'])
-    subprocess.call(['cp', '-rf',
-                     '/media/raid_arr/tmp/train0_aug_lvl',
-                     '/dev/shm/train0_aug_lvl'])
-    subprocess.call(['rm', '-rf', '/media/raid_arr/tmp/train0_aug_lvl'])
-    # Start augmenting in another thread while caffe runs
-    aug_thread = threading.Thread(target=my_io.create_aug_lvl)
-    aug_thread.start()
     
-    if ii == 0:
+    # Copy new job to worksite
+    subprocess.call(['cp', '-rf',
+                     next_job_path,
+                     '/dev/shm/train0_aug_lvl'])
+    subprocess.call(['rm', '-rf', next_job_path])
+
+    ## Don't need this if we have some other queue filling process in bckgnd
+    # Start augmenting in another thread while caffe runs
+    #aug_thread = threading.Thread(target=my_io.create_aug_lvl)
+    #aug_thread.start()
+    
+    if last_saved_iter == 0:
         print 'Starting new train'
         call_start()
         subprocess.call(['cp', '/tmp/caffe.INFO', 
                          '/tmp/my_caffe_log.txt'])
     else:
-        call_resume(snap_name(ii))
+        call_resume(snap_name(last_saved_iter))
         subprocess.call(['tail -25 /tmp/caffe.INFO >> /tmp/my_caffe_log.txt'], shell=True)
 print 'DONE'                        
 

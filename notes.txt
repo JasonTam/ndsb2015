@@ -1,0 +1,5 @@
+dropout increased from 0.75 to 0.9 in iteration 39k
+dropout of first FC layer decreased from 0.9 to 0.25 at 45k
+
+3/2/15
+trying out kernel size 5 on the first conv layer

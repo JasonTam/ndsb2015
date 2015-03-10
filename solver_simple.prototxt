@@ -1,0 +1,17 @@
+net: "/media/raid_arr/data/ndsb/config/simple_nn.prototxt"
+test_iter: 16
+test_interval: 100
+test_initialization: false
+display: 30
+average_loss: 33
+base_lr: 0.01
+lr_policy: "step"
+max_iter: 10000
+gamma: 0.1
+momentum: 0.9
+stepsize: 1000
+weight_decay: 0.0002
+snapshot: 100000
+snapshot_prefix: "/media/raid_arr/data/ndsb/models/simple_fold0"
+solver_mode: GPU
+solver_type: NESTEROV 

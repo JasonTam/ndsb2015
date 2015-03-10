@@ -8,11 +8,9 @@ layer {
     phase: TRAIN
   }
   data_param {
-    #source: "/media/raid_arr/data/ndsb/folds/train_aug0_lmdb"
-    source: "/dev/shm/train0_aug_lvl"
-    backend: LEVELDB
-    #batch_size: 384
-    batch_size: 448
+    source: "/media/raid_arr/data/ndsb/folds/train_aug0_lmdb"
+    backend: LMDB
+    batch_size: 384
   }
   transform_param {
     crop_size: 57
@@ -56,7 +54,7 @@ layer {
   }
   convolution_param {
     num_output: 96
-    kernel_size: 5
+    kernel_size: 7
     stride: 2
     weight_filler {
       type: "xavier"
@@ -82,7 +80,7 @@ layer {
   lrn_param {
     local_size: 5
     alpha: 0.0001
-    beta: 0.9
+    beta: 0.75
   }
 }
 layer {
@@ -124,7 +122,6 @@ layer {
     }
   }
 }
-
 layer {
   name: "relu2"
   type: "ReLU"
@@ -139,7 +136,7 @@ layer {
   lrn_param {
     local_size: 5
     alpha: 0.0001
-    beta: 0.9
+    beta: 0.75
   }
 }
 layer {
@@ -148,7 +145,7 @@ layer {
   bottom: "norm2"
   top: "pool2"
   pooling_param {
-    pool: STOCHASTIC
+    pool: MAX
     kernel_size: 3
     stride: 2
   }
@@ -249,16 +246,6 @@ layer {
   }
 }
 layer {
-  name: "drop5"
-  type: "Dropout"
-  bottom: "conv5"
-  top: "conv5"
-  dropout_param {
-     dropout_ratio: 0.2
-  }
-}
-
-layer {
   name: "relu5"
   type: "ReLU"
   bottom: "conv5"
@@ -312,7 +299,7 @@ layer {
   bottom: "fc6"
   top: "fc6"
   dropout_param {
-     dropout_ratio: 0.8
+    dropout_ratio: 0.5
   }
 }
 layer {
@@ -352,7 +339,7 @@ layer {
   bottom: "fc7"
   top: "fc7"
   dropout_param {
-     dropout_ratio: 0.8
+    dropout_ratio: 0.5
   }
 }
 layer {
@@ -369,7 +356,7 @@ layer {
     decay_mult: 0
   }
   inner_product_param {
-    num_output: 121
+    num_output: 1000
     weight_filler {
       type: "xavier"
       std: 0.01

@@ -1,0 +1,16 @@
+net: "/media/raid_arr/data/ndsb/config/train_val.prototxt"
+test_iter: 25
+test_interval: 1000
+test_initialization: false
+display: 25
+average_loss: 25
+base_lr: 0.01
+lr_policy: "step"
+stepsize: 100000
+gamma: 0.1
+max_iter: 10000000
+momentum: 0.9
+weight_decay: 0.0002
+snapshot: 1000
+snapshot_prefix: "/media/raid_arr/data/ndsb/models/alex_mod_fold0"
+solver_mode: GPU
