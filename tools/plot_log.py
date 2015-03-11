@@ -83,8 +83,9 @@ def load_data(data_file, field_idx0, field_idx1):
             line = line.strip()
             if line[0] != '#':
                 fields = line.split()
-                data[0].append(float(fields[field_idx0].strip()))
-                data[1].append(float(fields[field_idx1].strip()))
+                if len(fields) > max(field_idx0, field_idx1):
+                    data[0].append(float(fields[field_idx0].strip()))
+                    data[1].append(float(fields[field_idx1].strip()))
     return data
 
 def random_marker():

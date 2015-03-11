@@ -11,7 +11,7 @@ NET = os.path.join(NDSB_DIR, 'train_val.prototxt')
 CAFFE = '/afs/ee.cooper.edu/user/t/a/tam8/documents/caffe/build/tools/caffe'
 MODELS_DIR = '/media/raid_arr/data/ndsb/models'
 BUFFER_PATH = '/media/raid_arr/tmp/aug_buffer/'
-snapshot_prefix = 'alex11_oriennormaug_fold0_iter_'
+snapshot_prefix = 'alex11_oriennormaugfeats_fold0_iter_'
 MAX_ITER = 100000    # global max (not per step)
 STEP = 250      # MAKE SURE THE SNAPSHOT PARAM IN SOLVER MATCHES THIS
 
@@ -59,7 +59,7 @@ while last_saved_iter < MAX_ITER:
     # Get next job from ghetto queue
     jobs_int = None
     while not jobs_int:
-        jobs_int = [int(p) for p in os.walk(BUFFER_PATH).next()[1]]
+        jobs_int = [int(p.split('_')[0]) for p in os.walk(BUFFER_PATH).next()[1]]
         if not jobs_int:
             print 'No jobs in queue! - waiting 10 sec'
             time.sleep(10)
@@ -68,12 +68,17 @@ while last_saved_iter < MAX_ITER:
 
     # Remove the last finished job
     subprocess.call(['rm', '-rf', '/dev/shm/train0_aug_lvl'])
+    subprocess.call(['rm', '-rf', '/dev/shm/train0_aug_feats_lvl'])
     
     # Copy new job to worksite
     subprocess.call(['cp', '-rf',
                      next_job_path,
                      '/dev/shm/train0_aug_lvl'])
+    subprocess.call(['cp', '-rf',
+                     next_job_path + '_feats',
+                     '/dev/shm/train0_aug_feats_lvl'])
     subprocess.call(['rm', '-rf', next_job_path])
+    subprocess.call(['rm', '-rf', next_job_path + '_feats'])
 
     ## Don't need this if we have some other queue filling process in bckgnd
     # Start augmenting in another thread while caffe runs

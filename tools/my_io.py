@@ -3,7 +3,7 @@ import sys
 import os
 from PIL import Image
 import augment as aug
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from time import time
 import lmdb
 import plyvel
@@ -237,7 +237,7 @@ def get_kv(im_file):
     return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True)
 
 
-def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, verbose=False):
+def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, transfer_feats=True, verbose=False):
   
     tic = time()
     pool = Pool(processes=7)   # process per core
@@ -264,101 +264,75 @@ def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT
     toc = time() - tic
     if verbose:
         print 'Multiproc extraction:', toc
-
-
-"""
-class ExtractionTask(object):
-    def __init__(self, im_file, dbwriter):
-        self.im_file = im_file
-        self.dbwriter = dbwriter
-
-    def __call__(self):
-        k, v = make_db_entry(im_file, out_shape=out_shape, perturb=perturb)
-        dbwriter.put(k, v)
-        #if backend == 'leveldb':
-        #    wb.put(k, v)
-        #elif backend == 'lmdb':
-        #    txn.put(k, v)
-
-    def __str__(self):
-        return self.im_file
-
-class Consumer(multiprocessing.Process):
-    def __init__(self, task_queue, result_queue):
-        multiprocessing.Process.__init__(self)
-        self.task_queue = task_queue
-        self.result_queue = result_queue
-
-    def run(self):
-        proc_name = self.name
-        while True:
-            next_task = self.task_queue.get()
-            if next_task is None:
-                # Poison pill means shutdown
-#                 print '%s: Exiting' % proc_name
-                self.task_queue.task_done()
-                break
-#             print '%s: %s' % (proc_name, next_task)
-            answer = next_task()
-            self.task_queue.task_done()
-            self.result_queue.put(answer)
-        return
+        
+    if transfer_feats:
+        if verbose:
+            print 'Transfering feats to another db'
+        feats_db = db_path + '_feats'
+        transfer_feats_db(db_path, feats_db, 
+                          backend=backend, verbose=verbose)
 
 
 
-
-def multi_extract(im_files, db_path, backend='leveldb', perturb=True, out_shape=OUT_SHAPE, verbose=False):
+def transfer_feats_db(core_db, feats_db, backend='lmdb', verbose=False):
+    """
+    Transfer features to a separate db
+    """
     if backend == 'leveldb':
-        db = plyvel.DB(db_path, create_if_missing=True)
-        wb = db.write_batch()
-    elif backend == 'lmdb':
-        db = lmdb.open(db_path, map_size=1e12)
-        txn = db.begin(write=True)
+        c = plyvel.DB(core_db)
+        db_feats = plyvel.DB(feats_db, create_if_missing=True)
+        txn_feats = db_feats.write_batch()
+    elif backend == 'lmdb':   
+        db = lmdb.open(core_db)
+        db_feats = lmdb.open(feats_db, map_size=1e12)
+        txn = db.begin()
+        c = txn.cursor()
+        txn_feats = db_feats.begin(write=True)
 
+    std_scale = 2.
     tic = time()
+    for k, v in c:
+        datum = caffe_pb2.Datum()
+        datum.ParseFromString(v)
+        extra_feats = np.array([
+            datum.orig_space,
+            datum.orig_height,
+            datum.orig_width,
+            datum.extent,
+            datum.hu1,
+            datum.hu2,
+            datum.hu3,
+            datum.hu4,
+            datum.hu5,
+            datum.hu6,
+            datum.hu7,
+            datum.solidity,
+        ])[None, None, :]
+        datum.channels, datum.height, datum.width = extra_feats.shape
+        scale_map = ((extra_feats + std_scale) * 128./std_scale).clip(0, 255).astype('uint8')  # 2 std
+        datum.data = scale_map.tobytes()
+    #     datum.float_data.extend(extra_feats.flat)
+        v_feats = datum.SerializeToString()
+        
+        txn_feats.put(k, v_feats)
 
-    # Establish communication queues
-    tasks = multiprocessing.JoinableQueue()
-    results = multiprocessing.Queue()
-
-    # Start consumers
-    num_consumers = multiprocessing.cpu_count() * 2
-    # print 'Creating %d consumers' % num_consumers
-    consumers = [Consumer(tasks, results)
-                 for ii in xrange(num_consumers)]
-    for w in consumers:
-        w.start()
-
-    # Enqueue jobs
-    # todo: consider using `tblib` to make sure we can debug traceback
-    num_jobs = len(im_files)
-    for im_file in im_files:
-        if backend == 'leveldb':
-            tasks.put(ExtractionTask(im_file, wb))
-        elif backend == 'lmdb':
-            tasks.put(ExtractionTask(im_file, txn))
-        #tasks.put(ExtractionTask(im_file, txn))
-
-    # Add a poison pill for each consumer
-    for ii in xrange(num_consumers):
-        tasks.put(None)
-
-    # Wait for all of the tasks to finish
-    tasks.join()
-
-    # Combine Results
-    #     while num_jobs:
-    #         ret = results.get()
-    #         num_jobs -= 1  
     if backend == 'leveldb':
-        wb.write()
+        txn_feats.write()
+        c.close()
+        db_feats.close()
     elif backend == 'lmdb':
-        txn.commit()
-    db.close()
-
-    toc = time() - tic
+        txn_feats.commit()
+        db.close()
+        db_feats.close()
+    
     if verbose:
-        print 'Exrtaction to db done in', toc
+        print 'Feat transfer done:', time() - tic
         
         
-"""
+        
+        
+        
+        
+        
+        
+        

@@ -52,7 +52,7 @@ def get_largest_region(im, show_plots=False):
 
 """ This is all just modified code from Sanders"""
 def get_normal_perturb_tform(zoom_musig=(1, 0.01),
-                         rotation_musig=(0, 6),
+                         rotation_musig=(0, 5),
                          shear_musig=(0, 1),
                          translation_musig=(0, 1), 
                          do_flip=False):
