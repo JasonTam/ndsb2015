@@ -232,16 +232,23 @@ def single_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OU
         print 'Exrtaction to db done in', toc
 
 
-
-def get_kv(im_file):    
+# This is some BS
+def get_kv_peturb(im_file):
     return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True)
+
+
+def get_kv_nopeturb(im_file):
+    return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False)
 
 
 def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, transfer_feats=True, verbose=False):
   
     tic = time()
     pool = Pool(processes=7)   # process per core
-    all_kv = pool.map(get_kv, im_files)  # process data_inputs iterable with pool
+    if perturb:
+        all_kv = pool.map(get_kv_peturb, im_files)  # process data_inputs iterable with pool
+    else:
+        all_kv = pool.map(get_kv_nopeturb, im_files)  # process data_inputs iterable with pool
     pool.close()
     if backend == 'leveldb':
         db = plyvel.DB(db_path, create_if_missing=True)
