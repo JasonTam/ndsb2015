@@ -8,8 +8,15 @@ from skimage import measure
 from skimage import morphology
 #from skimage.filters import threshold_otsu
 import os
+import cPickle
 
 OUT_SHAPE = (64, 64)
+
+try:
+    feats_d = cPickle.load(open('/media/raid_arr/data/ndsb/region_feats.p', 'rb'))
+except IOError:
+    feats_d = None
+
 
 def get_largest_region(im, show_plots=False):
     # find the largest nonzero region
@@ -113,6 +120,20 @@ def fast_warp(img, tf, output_shape=OUT_SHAPE, mode='constant'):
     return img_wf
 
 
+
+def get_rp_features(rp):
+    if rp:
+        ext = rp.extent
+        hu = rp.moments_hu
+        sol = rp.solidity
+        bbox = rp.bbox
+        theta = rp.orientation
+        return ext, hu, sol, bbox, theta
+    else:
+        return None
+
+
+
 def get_features(im_file, out_shape=OUT_SHAPE, norm_orientation=True, perturb=True,
                  verbose=False, show_plots=False):
     
@@ -123,25 +144,32 @@ def get_features(im_file, out_shape=OUT_SHAPE, norm_orientation=True, perturb=Tr
     f_size = os.stat(im_file).st_size
     if regionmax:
 
-        ext = regionmax.extent
-        hu = regionmax.moments_hu
-        sol = regionmax.solidity
+        #ext = regionmax.extent
+        #hu = regionmax.moments_hu
+        #sol = regionmax.solidity
+        #bbox = regionmax.bbox
+        #theta = regionmax.orientation
+        if feats_d:
+            im_name = os.path.basename(im_file)
+            ext, hu, sol, bbox, theta = feats_d[im_name]
+        else:
+            ext, hu, sol, bbox, theta = get_rp_features(regionmax)
 
-        bw = np.where(labels == regionmax.label,True,False)
 
         if show_plots:
+            # Can only show this plot if the featues are calculated on the spot rather than loaded
+            bw = np.where(labels == regionmax.label,True,False)
             plt.figure()
             imshow(bw)
 
-        center_in = np.array(regionmax.bbox).reshape((2, 2)).mean(axis=0)[::-1]
+        center_in = np.array(bbox).reshape((2, 2)).mean(axis=0)[::-1]
         center_out = np.array(out_shape) / 2. - 0.5
 
         tf_cent = skimage.transform.SimilarityTransform(translation=-center_out)
         tf_uncent = skimage.transform.SimilarityTransform(translation=center_in)
 
         if norm_orientation:
-            theta = regionmax.orientation
-            max_side = np.diff(np.array(regionmax.bbox).reshape((2, 2)), axis=0).max()
+            max_side = np.diff(np.array(bbox).reshape((2, 2)), axis=0).max()
             alpha = out_shape[0] / float(max_side)
 
             if verbose:

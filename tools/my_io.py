@@ -241,8 +241,8 @@ def get_kv_nopeturb(im_file):
     return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False)
 
 
-def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, transfer_feats=True, verbose=False):
-  
+def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, 
+                  transfer_feats=True, transfer_lbls=True, verbose=False):
     tic = time()
     pool = Pool(processes=7)   # process per core
     if perturb:
@@ -277,6 +277,12 @@ def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT
             print 'Transfering feats to another db'
         feats_db = db_path + '_feats'
         transfer_feats_db(db_path, feats_db, 
+                          backend=backend, verbose=verbose)
+    if transfer_lbls:
+        if verbose:
+            print 'Transfering parent labels to another db'
+        feats_db = db_path + '_lbls'
+        transfer_parentlbls_db(db_path, feats_db, 
                           backend=backend, verbose=verbose)
 
 
@@ -316,7 +322,7 @@ def transfer_feats_db(core_db, feats_db, backend='lmdb', verbose=False):
             datum.solidity,
         ])[None, None, :]
         datum.channels, datum.height, datum.width = extra_feats.shape
-        scale_map = ((extra_feats + std_scale) * 128./std_scale).clip(0, 255).astype('uint8')  # 2 std
+        scale_map = ((extra_feats + std_scale) * 128./std_scale).clip(0, 255).astype('uint8') 
         datum.data = scale_map.tobytes()
     #     datum.float_data.extend(extra_feats.flat)
         v_feats = datum.SerializeToString()
@@ -336,8 +342,51 @@ def transfer_feats_db(core_db, feats_db, backend='lmdb', verbose=False):
         print 'Feat transfer done:', time() - tic
         
         
+def transfer_parentlbls_db(core_db, feats_db, backend='lmdb', verbose=False):
+    """
+    Transfer parent labels to a separate db
+    """
+    if backend == 'leveldb':
+        c = plyvel.DB(core_db)
+        db_feats = plyvel.DB(feats_db, create_if_missing=True)
+        txn_feats = db_feats.write_batch()
+    elif backend == 'lmdb':   
+        db = lmdb.open(core_db)
+        db_feats = lmdb.open(feats_db, map_size=1e12)
+        txn = db.begin()
+        c = txn.cursor()
+        txn_feats = db_feats.begin(write=True)
+
+    tic = time()
+    for k, v in c:
+        datum = caffe_pb2.Datum()
+        datum.ParseFromString(v)
+        extra_lbls = np.array([
+            datum.label0,
+            datum.label1,
+            datum.label2,
+            datum.label3,
+            datum.label4,
+            datum.label5,
+            datum.label6,
+        ])[:, None, None]
+        datum.channels, datum.height, datum.width = extra_lbls.shape
+        datum.data = extra_lbls.astype('uint8').tobytes()
+        v_lbls = datum.SerializeToString()
         
+        txn_feats.put(k, v_lbls)
+
+    if backend == 'leveldb':
+        txn_feats.write()
+        c.close()
+        db_feats.close()
+    elif backend == 'lmdb':
+        txn_feats.commit()
+        db.close()
+        db_feats.close()             
         
+    if verbose:
+        print 'Parent labels transfer done:', time() - tic
         
         
         
