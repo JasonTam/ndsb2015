@@ -11,6 +11,7 @@ import os
 import cPickle
 
 OUT_SHAPE = (64, 64)
+imshow = lambda im: plt.imshow(im, cmap='gray', interpolation='none')
 
 try:
     feats_d = cPickle.load(open('/media/raid_arr/data/ndsb/region_feats.p', 'rb'))
