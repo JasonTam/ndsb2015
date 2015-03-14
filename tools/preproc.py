@@ -192,7 +192,7 @@ def get_features(im_file, out_shape=OUT_SHAPE, norm_orientation=True, perturb=Tr
             tform_norm = skimage.transform.SimilarityTransform()
             
         if perturb:
-            tform_perturb = get_normal_perturb_tform(kwargs, verbose=verbose)
+            tform_perturb = get_normal_perturb_tform(verbose=verbose, **kwargs)
         else:
             tform_perturb = skimage.transform.SimilarityTransform()
             
