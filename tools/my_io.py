@@ -12,12 +12,45 @@ import preproc as pp
 from le import le
 from le import scaler
 import taxonomy as tax
+from collections import OrderedDict
 from random import shuffle
 from multiprocessing import Pool
 from functools import partial
 from caffe.proto import caffe_pb2
 
 datum = caffe_pb2.Datum()
+
+###########################################################
+# TODO: I should really move this somewhere else - oh well
+specialists_d = OrderedDict([
+    ('chaetognath', [
+        'chaetognath_non_sagitta', 
+        'chaetognath_other',
+        'chaetognath_sagitta']),
+    ('copepod', [
+        'copepod_calanoid',
+        'copepod_calanoid_eggs',
+        'copepod_calanoid_eucalanus',
+        'copepod_calanoid_flatheads',
+        'copepod_calanoid_frillyAntennae',
+        'copepod_calanoid_large',
+        'copepod_calanoid_large_side_antennatucked',
+        'copepod_calanoid_octomoms',
+        'copepod_calanoid_small_longantennae',
+        'copepod_cyclopoid_copilia',
+        'copepod_cyclopoid_oithona',
+        'copepod_cyclopoid_oithona_eggs',
+        'copepod_other']),
+    ('tunicate_doliolid', [
+        'tunicate_doliolid', 
+        'tunicate_doliolid_nurse']),
+])
+sp_member_d = {}
+for p, c in specialists_d.items():
+    for m in c:
+        sp_member_d[m] = p
+###########################################################
+        
 
 def bs_to_l(bs):
     """
@@ -46,7 +79,8 @@ def load_lmdb(db_path):
     db = lmdb.open(db_path, readonly=True)
     with db.begin() as txn:
         cursor = txn.cursor()
-        data = [(k.split('_', 1)[1], bs_to_im(v), bs_to_l(v)) for k, v in cursor]
+        #~ data = [(k.split('_', 1)[1], bs_to_im(v), bs_to_l(v)) for k, v in cursor]
+        data = [(k, bs_to_im(v), bs_to_l(v)) for k, v in cursor]
     return data
 
 def load_lmdb_chunk(db_path, start_key='', n=None):
@@ -60,7 +94,8 @@ def load_lmdb_chunk(db_path, start_key='', n=None):
     with db.begin() as txn:
         cursor = txn.cursor()
         cursor.set_range(start_key)
-        data = [(k.split('_', 1)[1], bs_to_im(v), bs_to_l(v)) for ii, (k, v) in enumerate(cursor) if ii < n]
+        #data = [(k.split('_', 1)[1], bs_to_im(v), bs_to_l(v)) for ii, (k, v) in enumerate(cursor) if ii < n]
+        data = [(k, bs_to_im(v), bs_to_l(v)) for ii, (k, v) in enumerate(cursor) if ii < n]
         if n != sys.maxint:
             cursor.set_range(start_key)
             for ii in range(n):
@@ -233,18 +268,22 @@ def single_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OU
 
 
 # This is some BS
+# Train perturb 
 def get_kv_peturb(im_file):
-    return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True)
+    return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True, mode='train')
 
-
+# Train no perturb 
 def get_kv_nopeturb(im_file):
-    return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False)
+    return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False, mode='train')
 
+# Test (perturb)
 def get_kv_test(im_file):
     return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False, mode='test')
 
 def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, 
-                  transfer_feats=True, transfer_lbls=True, 
+                  transfer_feats=True,
+                  transfer_lbls=True,
+                  create_specialists=True,
                   mode='train', verbose=False):
     tic = time()
     pool = Pool(processes=7)   # process per core
@@ -280,6 +319,11 @@ def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT
     if verbose:
         print 'Multiproc extraction:', toc
         
+    if mode == 'train' and create_specialists:
+        if verbose:
+            print 'Creating specialist db'
+        make_specialist_db(db_path, backend=backend, verbose=verbose)
+              
     if transfer_feats:
         if verbose:
             print 'Transfering feats to another db'
@@ -397,6 +441,62 @@ def transfer_parentlbls_db(core_db, feats_db, backend='lmdb', verbose=False):
         print 'Parent labels transfer done:', time() - tic
         
         
+def make_specialist_db(core_db, backend='lmdb', verbose=False):
+    """
+    Make specialist db
+    """
+    if backend == 'leveldb':
+        c = plyvel.DB(core_db)
+    elif backend == 'lmdb':   
+        db = lmdb.open(core_db)
+        txn_core = db.begin()
+        c = txn_core.cursor()
+
+    txn_sp_d = {}   # dictionary of db transactions for each specialist
+    db_sp_d = {}
+    for sp_name in specialists_d.keys():        
+        sp_db = core_db + '_' + sp_name
+        if backend == 'leveldb':
+            db_sp = plyvel.DB(sp_db, create_if_missing=True)
+            txn_sp = db_sp.write_batch()
+        elif backend == 'lmdb':   
+            db_sp = lmdb.open(sp_db, map_size=1e12)
+            txn_sp = db_sp.begin(write=True)
+        db_sp_d[sp_name] = db_sp
+        txn_sp_d[sp_name] = txn_sp
+            
+    # Move entries in core to appropriate specialist db
+    tic = time()
+    for k, v in c:
+		datum = caffe_pb2.Datum()
+		datum.ParseFromString(v)
+		l = datum.label
+		l_str = le.inverse_transform(l)
+		if l_str in sp_member_d.keys():
+			parent = sp_member_d[l_str]
+			# Ghetto string encode
+			datum.label = specialists_d[parent].index(l_str)
+			print parent, l_str, datum.label
+			v_sp = datum.SerializeToString()
+			txn_sp_d[parent].put(k, v_sp)
+
+    # Write/commit and close
+    if backend == 'leveldb':
+        for txn in txn_sp_d.values():
+            txn.write()
+        for db_sp in db_sp_d.values():
+            db_sp.close()
+        c.close()
         
+    elif backend == 'lmdb':
+        for txn in txn_sp_d.values():
+            txn.commit()
+        for db_sp in db_sp_d.values():
+            db_sp.close()
+        db.close()
+        db_sp.close()
+    
+    if verbose:
+        print 'Specialist creation done:', time() - tic
         
         

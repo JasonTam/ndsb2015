@@ -85,15 +85,10 @@ while last_saved_iter < MAX_ITER:
     subprocess.call(['rm', '-rf', '/dev/shm/train0_aug_lbls_lvl'])
     
     # Copy new job to worksite
-    subprocess.call(['cp', '-rf',
-                     next_job_path,
-                     '/dev/shm/train0_aug_lvl'])
-    subprocess.call(['cp', '-rf',
-                     next_job_path + '_feats',
-                     '/dev/shm/train0_aug_feats_lvl'])
-    subprocess.call(['cp', '-rf',
-                     next_job_path + '_lbls',
-                     '/dev/shm/train0_aug_lbls_lvl'])
+    subprocess.call(['cp', '-rf', next_job_path, '/dev/shm/train0_aug_lvl'])
+    subprocess.call(['cp', '-rf', next_job_path + '_feats', '/dev/shm/train0_aug_feats_lvl'])
+    subprocess.call(['cp', '-rf', next_job_path + '_lbls', '/dev/shm/train0_aug_lbls_lvl'])
+    
     subprocess.call(['rm', '-rf', next_job_path])
     subprocess.call(['rm', '-rf', next_job_path + '_feats'])
     subprocess.call(['rm', '-rf', next_job_path + '_lbls'])

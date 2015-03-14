@@ -2,8 +2,12 @@ from collections import defaultdict
 from itertools import takewhile
 from pprint import pprint
 from sklearn.preprocessing import LabelEncoder
+import os
 
+curdir, _ = os.path.split(__file__)
 DATA_PATH = '../data/chart_tabs.txt'
+f_path_chart = os.path.join(curdir, DATA_PATH)
+
 
 is_tab = '\t'.__eq__
 
@@ -37,7 +41,7 @@ def build_trace(lines):
     return ret
 
 
-with open(DATA_PATH, 'r') as f:
+with open(f_path_chart, 'r') as f:
     lines = [l.rstrip('\n') for l in f.readlines()]
 
 #t = build_tree(lines)
