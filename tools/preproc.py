@@ -63,7 +63,8 @@ def get_normal_perturb_tform(zoom_musig=(1, 0.02),
                          rotation_musig=(0, 45),
                          shear_musig=(0, 1),
                          translation_musig=(0, 1), 
-                         do_flip=False):
+                         do_flip=False,
+                         verbose=False):
     """
     Since our images going to be normalized already,
     we don't want to deviate too much
@@ -100,6 +101,12 @@ def get_normal_perturb_tform(zoom_musig=(1, 0.02),
                                               rotation=np.deg2rad(rotation),
                                               shear=np.deg2rad(shear),
                                               translation=translation)
+    if verbose:
+		print 'Perturb Params:'
+		print 'Scale:', (1/zoom_x, 1/zoom_y)
+		print 'Rotation:', rotation
+		print 'Shear:', shear
+		print 'Translation:', translation
     return tform
   
     
@@ -185,7 +192,7 @@ def get_features(im_file, out_shape=OUT_SHAPE, norm_orientation=True, perturb=Tr
             tform_norm = skimage.transform.SimilarityTransform()
             
         if perturb:
-            tform_perturb = get_normal_perturb_tform(kwargs)
+            tform_perturb = get_normal_perturb_tform(kwargs, verbose=verbose)
         else:
             tform_perturb = skimage.transform.SimilarityTransform()
             
