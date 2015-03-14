@@ -58,8 +58,8 @@ def get_largest_region(im, show_plots=False):
 
 
 """ This is all just modified code from Sanders"""
-def get_normal_perturb_tform(zoom_musig=(1, 0.01),
-                         rotation_musig=(0, 5),
+def get_normal_perturb_tform(zoom_musig=(1, 0.02),
+                         rotation_musig=(0, 45),
                          shear_musig=(0, 1),
                          translation_musig=(0, 1), 
                          do_flip=False):
@@ -151,7 +151,10 @@ def get_features(im_file, out_shape=OUT_SHAPE, norm_orientation=True, perturb=Tr
         #theta = regionmax.orientation
         if feats_d:
             im_name = os.path.basename(im_file)
-            ext, hu, sol, bbox, theta = feats_d[im_name]
+            if im_name in feats_d.keys():
+                ext, hu, sol, bbox, theta = feats_d[im_name]
+            else:
+                ext, hu, sol, bbox, theta = get_rp_features(regionmax)
         else:
             ext, hu, sol, bbox, theta = get_rp_features(regionmax)
 

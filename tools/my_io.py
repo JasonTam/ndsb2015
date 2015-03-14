@@ -145,9 +145,7 @@ def create_aug_lvl(orig_db=ORIG_LMDB_PATH, aug_db=AUG_LVL_PATH, shuffle_keys=Tru
 OUT_SHAPE = (64, 64)
 
 
-def make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True):
-    y_str = os.path.basename(os.path.dirname(im_file))
-    y = le.transform(y_str)
+def make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True, mode='train'):
     
     im_w, (f_size, h, w, ext, hu, sol) = pp.get_features(im_file, 
                                                       out_shape=out_shape,
@@ -160,18 +158,20 @@ def make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True):
     datum.height = out_shape[0]
     datum.width = out_shape[1]
     datum.data = im_w.astype('uint8').tobytes()
-    datum.label = y
+    
+    if mode == 'train':
+        # Setup up ground truth labels if training data
+        y_str = os.path.basename(os.path.dirname(im_file))
+        y = le.transform(y_str)
+        datum.label = y
 
-    #float_data = 6;
-
-    #encoded = 7 [default = false];
-    datum.label0 = tax.encode_parent(y_str, 0)
-    datum.label1 = tax.encode_parent(y_str, 1)
-    datum.label2 = tax.encode_parent(y_str, 2)
-    datum.label3 = tax.encode_parent(y_str, 3)
-    datum.label4 = tax.encode_parent(y_str, 4)
-    datum.label5 = tax.encode_parent(y_str, 5)
-    datum.label6 = tax.encode_parent(y_str, 6)
+        datum.label0 = tax.encode_parent(y_str, 0)
+        datum.label1 = tax.encode_parent(y_str, 1)
+        datum.label2 = tax.encode_parent(y_str, 2)
+        datum.label3 = tax.encode_parent(y_str, 3)
+        datum.label4 = tax.encode_parent(y_str, 4)
+        datum.label5 = tax.encode_parent(y_str, 5)
+        datum.label6 = tax.encode_parent(y_str, 6)
 
     # Normalized Features (Normalize on second pass)
 #     datum.orig_space = f_size
@@ -240,15 +240,23 @@ def get_kv_peturb(im_file):
 def get_kv_nopeturb(im_file):
     return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False)
 
+def get_kv_test(im_file):
+    return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False, mode='test')
 
 def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, 
-                  transfer_feats=True, transfer_lbls=True, verbose=False):
+                  transfer_feats=True, transfer_lbls=True, 
+                  mode='train', verbose=False):
     tic = time()
     pool = Pool(processes=7)   # process per core
-    if perturb:
+    if mode == 'test':
+        all_kv = pool.map(get_kv_test, im_files)
+    elif perturb:   # training and peturb
         all_kv = pool.map(get_kv_peturb, im_files)  # process data_inputs iterable with pool
-    else:
+    else:     # training and no peturb
         all_kv = pool.map(get_kv_nopeturb, im_files)  # process data_inputs iterable with pool
+        
+        
+        
     pool.close()
     if backend == 'leveldb':
         db = plyvel.DB(db_path, create_if_missing=True)

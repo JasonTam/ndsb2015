@@ -7,15 +7,15 @@ NDSB_DIR = '/media/raid_arr/data/ndsb/config'
 # TRAIN_SCRIPT = os.path.join(NDSB_DIR, 'train_pl.sh')
 # RESUME_SCRIPT = os.path.join(NDSB_DIR, 'resume_training_pl.sh')
 #~ SOLVER = os.path.join(NDSB_DIR, 'solver.prototxt')
-SOLVER = os.path.join(NDSB_DIR, 'solver_.prototxt')
-NET = os.path.join(NDSB_DIR, 'train_val.prototxt')
+SOLVER = os.path.join(NDSB_DIR, 'solver_simple.prototxt')
+#~ NET = os.path.join(NDSB_DIR, 'train_val.prototxt')
 CAFFE = '/afs/ee.cooper.edu/user/t/a/tam8/documents/caffe/build/tools/caffe'
 MODELS_DIR = '/media/raid_arr/data/ndsb/models'
 BUFFER_PATH = '/media/raid_arr/tmp/aug_buffer/'
 #~ snapshot_prefix = 'alex11_oriennormaugfeats_fold0_iter_'
-snapshot_prefix = 'alex11_oriennormaugfeats_fold0_iter_'
+snapshot_prefix = 'simple_fold0_iter_'
 MAX_ITER = 50000    # global max (not per step)
-STEP = 250      # MAKE SURE THE SNAPSHOT PARAM IN SOLVER MATCHES THIS
+STEP = 100      # MAKE SURE THE SNAPSHOT PARAM IN SOLVER MATCHES THIS
 
 
 
@@ -24,15 +24,16 @@ def write_max_iter_to_solver(max_iter, f_path=SOLVER):
     # read a list of lines into data
         f_data = f.readlines()
 
-    # Change the line with the PL loss weight
+    # Change the line for maxiter (our stepsize)
     line_n = 8    # The line number we're going to replace
     new_line = 'max_iter: ' + str(max_iter) + '\n'
     f_data[line_n] = new_line
     
-    #~ # Change the line with the PL loss weight
-    #~ line_n = 10    # The line number we're going to replace
-    #~ new_line = 'momentum: ' + str(0.5 + 0.2*max_iter/32000) + '\n'
-    #~ f_data[line_n] = new_line
+    # linearly scale up momentum
+    if max_iter <= 1000:
+        line_n = 10    # The line number we're going to replace
+        new_line = 'momentum: ' + str(0.5 + 0.4*max_iter/1000) + '\n'
+        f_data[line_n] = new_line
 
     # and write everything back
     with open(f_path, 'w') as f:
@@ -90,8 +91,8 @@ while last_saved_iter < MAX_ITER:
     subprocess.call(['cp', '-rf',
                      next_job_path + '_feats',
                      '/dev/shm/train0_aug_feats_lvl'])
-	subprocess.call(['cp', '-rf',
-                     next_job_path + '_feats',
+    subprocess.call(['cp', '-rf',
+                     next_job_path + '_lbls',
                      '/dev/shm/train0_aug_lbls_lvl'])
     subprocess.call(['rm', '-rf', next_job_path])
     subprocess.call(['rm', '-rf', next_job_path + '_feats'])
