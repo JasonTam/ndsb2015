@@ -135,7 +135,7 @@ def get_rp_features(rp):
 
 
 def get_features(im_file, out_shape=OUT_SHAPE, norm_orientation=True, perturb=True,
-                 verbose=False, show_plots=False):
+                 verbose=False, show_plots=False, **kwargs):
     
     im = 255 - cv2.imread(im_file, cv2.IMREAD_GRAYSCALE)   # subject is white, bckg is black
     regionmax, labels = get_largest_region(im, show_plots=show_plots)
@@ -184,7 +184,7 @@ def get_features(im_file, out_shape=OUT_SHAPE, norm_orientation=True, perturb=Tr
             tform_norm = skimage.transform.SimilarityTransform()
             
         if perturb:
-            tform_perturb = get_normal_perturb_tform()
+            tform_perturb = get_normal_perturb_tform(kwargs)
         else:
             tform_perturb = skimage.transform.SimilarityTransform()
             
