@@ -11,6 +11,7 @@ import multiprocessing
 import preproc as pp
 from le import le
 from le import scaler
+import specialism as sp
 import taxonomy as tax
 from collections import OrderedDict
 from random import shuffle
@@ -19,38 +20,6 @@ from functools import partial
 from caffe.proto import caffe_pb2
 
 datum = caffe_pb2.Datum()
-
-###########################################################
-# TODO: I should really move this somewhere else - oh well
-specialists_d = OrderedDict([
-    ('chaetognath', [
-        'chaetognath_non_sagitta', 
-        'chaetognath_other',
-        'chaetognath_sagitta']),
-    ('copepod', [
-        'copepod_calanoid',
-        'copepod_calanoid_eggs',
-        'copepod_calanoid_eucalanus',
-        'copepod_calanoid_flatheads',
-        'copepod_calanoid_frillyAntennae',
-        'copepod_calanoid_large',
-        'copepod_calanoid_large_side_antennatucked',
-        'copepod_calanoid_octomoms',
-        'copepod_calanoid_small_longantennae',
-        'copepod_cyclopoid_copilia',
-        'copepod_cyclopoid_oithona',
-        'copepod_cyclopoid_oithona_eggs',
-        'copepod_other']),
-    ('tunicate_doliolid', [
-        'tunicate_doliolid', 
-        'tunicate_doliolid_nurse']),
-])
-sp_member_d = {}
-for p, c in specialists_d.items():
-    for m in c:
-        sp_member_d[m] = p
-###########################################################
-        
 
 def bs_to_l(bs):
     """
@@ -200,13 +169,18 @@ def make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True, mode='train'):
         y = le.transform(y_str)
         datum.label = y
 
-        datum.label0 = tax.encode_parent(y_str, 0)
-        datum.label1 = tax.encode_parent(y_str, 1)
-        datum.label2 = tax.encode_parent(y_str, 2)
-        datum.label3 = tax.encode_parent(y_str, 3)
-        datum.label4 = tax.encode_parent(y_str, 4)
-        datum.label5 = tax.encode_parent(y_str, 5)
-        datum.label6 = tax.encode_parent(y_str, 6)
+        datum.label0 = y   # Regular label
+        datum.label1 = sp.fine_to_coarse[y]    # Coarse label
+        datum.label2 = sp.coarse_to_fine[sp.fine_to_coarse[y]].index(y)    # Intra label inside coarse
+		
+		#~ # TAXONOMY PARENTS (GABAGE)
+        #~ datum.label0 = tax.encode_parent(y_str, 0)
+        #~ datum.label1 = tax.encode_parent(y_str, 1)
+        #~ datum.label2 = tax.encode_parent(y_str, 2)
+        #~ datum.label3 = tax.encode_parent(y_str, 3)
+        #~ datum.label4 = tax.encode_parent(y_str, 4)
+        #~ datum.label5 = tax.encode_parent(y_str, 5)
+        #~ datum.label6 = tax.encode_parent(y_str, 6)
 
     # Normalized Features (Normalize on second pass)
 #     datum.orig_space = f_size
@@ -281,8 +255,9 @@ def get_kv_test(im_file):
     return make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=False, mode='test')
 
 def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT_SHAPE, 
-                  transfer_feats=True,
-                  transfer_lbls=True,
+                  transfer_feats=False,
+                  transfer_plbls=False,
+                  transfer_splbls=True,
                   create_specialists=True,
                   mode='train', verbose=False):
     tic = time()
@@ -330,11 +305,18 @@ def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT
         feats_db = db_path + '_feats'
         transfer_feats_db(db_path, feats_db, 
                           backend=backend, verbose=verbose)
-    if transfer_lbls:
+    if transfer_plbls:
         if verbose:
             print 'Transfering parent labels to another db'
         feats_db = db_path + '_lbls'
         transfer_parentlbls_db(db_path, feats_db, 
+                          backend=backend, verbose=verbose)
+                          
+    if transfer_splbls:
+        if verbose:
+            print 'Transfering specialist labels to another db'
+        sp_db = db_path + '_splbls'
+        transfer_splbls_db(db_path, sp_db, 
                           backend=backend, verbose=verbose)
 
 
@@ -397,6 +379,7 @@ def transfer_feats_db(core_db, feats_db, backend='lmdb', verbose=False):
 def transfer_parentlbls_db(core_db, feats_db, backend='lmdb', verbose=False):
     """
     Transfer parent labels to a separate db
+    PARENT LBLS ARE GARBAGE
     """
     if backend == 'leveldb':
         c = plyvel.DB(core_db)
@@ -439,8 +422,8 @@ def transfer_parentlbls_db(core_db, feats_db, backend='lmdb', verbose=False):
         
     if verbose:
         print 'Parent labels transfer done:', time() - tic
-        
-        
+
+ 
 def make_specialist_db(core_db, backend='lmdb', verbose=False):
     """
     Make specialist db
@@ -454,16 +437,16 @@ def make_specialist_db(core_db, backend='lmdb', verbose=False):
 
     txn_sp_d = {}   # dictionary of db transactions for each specialist
     db_sp_d = {}
-    for sp_name in specialists_d.keys():        
-        sp_db = core_db + '_' + sp_name
+    for sp_n in sp.coarse_to_fine.keys():        
+        sp_db = core_db + '_' + str(sp_n)
         if backend == 'leveldb':
             db_sp = plyvel.DB(sp_db, create_if_missing=True)
             txn_sp = db_sp.write_batch()
         elif backend == 'lmdb':   
             db_sp = lmdb.open(sp_db, map_size=1e12)
             txn_sp = db_sp.begin(write=True)
-        db_sp_d[sp_name] = db_sp
-        txn_sp_d[sp_name] = txn_sp
+        db_sp_d[sp_n] = db_sp
+        txn_sp_d[sp_n] = txn_sp
             
     # Move entries in core to appropriate specialist db
     tic = time()
@@ -471,14 +454,8 @@ def make_specialist_db(core_db, backend='lmdb', verbose=False):
 		datum = caffe_pb2.Datum()
 		datum.ParseFromString(v)
 		l = datum.label
-		l_str = le.inverse_transform(l)
-		if l_str in sp_member_d.keys():
-			parent = sp_member_d[l_str]
-			# Ghetto string encode
-			datum.label = specialists_d[parent].index(l_str)
-			print parent, l_str, datum.label
-			v_sp = datum.SerializeToString()
-			txn_sp_d[parent].put(k, v_sp)
+		sp_group = sp.fine_to_coarse[l]
+		txn_sp_d[sp_group].put(k, v)
 
     # Write/commit and close
     if backend == 'leveldb':
@@ -497,6 +474,48 @@ def make_specialist_db(core_db, backend='lmdb', verbose=False):
         db_sp.close()
     
     if verbose:
-        print 'Specialist creation done:', time() - tic
+        print 'Specialist db creation done:', time() - tic
         
+        
+
+def transfer_splbls_db(core_db, sp_db, backend='lmdb', verbose=False):
+    """
+    Transfer specialist labels to a separate db
+    """
+    if backend == 'leveldb':
+        c = plyvel.DB(core_db)
+        db_sp = plyvel.DB(sp_db, create_if_missing=True)
+        txn_sp = db_sp.write_batch()
+    elif backend == 'lmdb':   
+        db = lmdb.open(core_db)
+        db_sp = lmdb.open(sp_db, map_size=1e12)
+        txn = db.begin()
+        c = txn.cursor()
+        txn_sp = db_sp.begin(write=True)
+
+    tic = time()
+    for k, v in c:
+        datum = caffe_pb2.Datum()
+        datum.ParseFromString(v)
+        extra_lbls = np.array([
+            datum.label0,
+            datum.label1,
+        ])[:, None, None]
+        datum.channels, datum.height, datum.width = extra_lbls.shape
+        datum.data = extra_lbls.astype('uint8').tobytes()
+        v_lbls = datum.SerializeToString()
+        
+        txn_sp.put(k, v_lbls)
+
+    if backend == 'leveldb':
+        txn_sp.write()
+        c.close()
+        db_sp.close()
+    elif backend == 'lmdb':
+        txn_sp.commit()
+        db.close()
+        db_sp.close()             
+        
+    if verbose:
+        print 'Specialist labels transfer done:', time() - tic
         
