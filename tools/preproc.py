@@ -60,9 +60,9 @@ def get_largest_region(im, show_plots=False):
 
 """ This is all just modified code from Sanders"""
 def get_normal_perturb_tform(zoom_musig=(1, 0.02),
-                         rotation_musig=(0, 45),
-                         shear_musig=(0, 1),
-                         translation_musig=(0, 1), 
+                         rotation_musig=(0, 20),
+                         shear_musig=(0, 10),
+                         translation_musig=(0, 2), 
                          do_flip=False,
                          verbose=False):
     """
@@ -110,7 +110,8 @@ def get_normal_perturb_tform(zoom_musig=(1, 0.02),
     return tform
   
     
-def get_normalizing_tform(rotation, zoom):
+def get_normalizing_tform(rotation, zoom, gamma=0.75):
+    zoom = gamma * zoom
     tform = skimage.transform.AffineTransform(scale=(1/zoom, 1/zoom), 
                                               rotation=np.deg2rad(rotation), 
                                               shear=0, 
