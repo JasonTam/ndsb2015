@@ -4,17 +4,18 @@ import subprocess
 import my_io
 import threading
 import time
-NDSB_DIR = '/media/raid_arr/data/ndsb/config'
+import make_fine_config as mfc
+
+NDSB_DIR = '/media/raid_arr/data/ndsb/config/hier/'
 # TRAIN_SCRIPT = os.path.join(NDSB_DIR, 'train_pl.sh')
 # RESUME_SCRIPT = os.path.join(NDSB_DIR, 'resume_training_pl.sh')
-#~ SOLVER = os.path.join(NDSB_DIR, 'solver.prototxt')
-SOLVER = os.path.join(NDSB_DIR, 'solver_simple.prototxt')
-#~ NET = os.path.join(NDSB_DIR, 'train_val.prototxt')
+SOLVER = os.path.join(NDSB_DIR, 'solver_coarse.prototxt')
+NET = os.path.join(NDSB_DIR, 'cnn_v4_coarse.prototxt')
 CAFFE = '/afs/ee.cooper.edu/user/t/a/tam8/documents/caffe/build/tools/caffe'
 MODELS_DIR = '/media/raid_arr/data/ndsb/models'
 BUFFER_PATH = '/media/raid_arr/tmp/aug_buffer/'
 #~ snapshot_prefix = 'alex11_oriennormaugfeats_fold0_iter_'
-snapshot_prefix = 'simple_fold0_iter_'
+snapshot_prefix = 'coarse_fold0_iter_'
 MAX_ITER = 50000    # global max (not per step)
 STEP = 100      # MAKE SURE THE SNAPSHOT PARAM IN SOLVER MATCHES THIS
 
@@ -31,10 +32,10 @@ def write_max_iter_to_solver(max_iter, f_path=SOLVER):
     f_data[line_n] = new_line
     
     # linearly scale up momentum
-    if max_iter <= 1000:
-        line_n = 10    # The line number we're going to replace
-        new_line = 'momentum: ' + str(0.5 + 0.4*max_iter/1000) + '\n'
-        f_data[line_n] = new_line
+    #if max_iter <= 2000:
+    #    line_n = 10    # The line number we're going to replace
+    #    new_line = 'momentum: ' + str(0.5 + 0.35*max_iter/2000) + '\n'
+    #    f_data[line_n] = new_line
 
     # and write everything back
     with open(f_path, 'w') as f:
@@ -83,8 +84,9 @@ while last_saved_iter < MAX_ITER:
     ##########[SHELL COPY REMOVE =( ]##########
     dst_dir = '/dev/shm/'
     prefix = 'train0_aug_lvl'
+    
     # Remove the last finished job from shm
-    subprocess.call(['rm', '-rf', dst_dir + prefix + '*'])
+    subprocess.call('rm -rf ' + dst_dir + prefix + '*', shell=True)
     
     # Copy new job to worksite
     for subpath in glob.glob(next_job_path + '*'):
@@ -93,6 +95,7 @@ while last_saved_iter < MAX_ITER:
         subprocess.call(['cp', '-rf', subpath, dst])
     
         # Remove job from buffer
+        #TODO: UNCOMMENT BELOW
         subprocess.call(['rm', '-rf', subpath])
     
 
@@ -101,15 +104,34 @@ while last_saved_iter < MAX_ITER:
     #aug_thread = threading.Thread(target=my_io.create_aug_lvl)
     #aug_thread.start()
     
+    ####### COPYING COARSE ENTS TO FINE #####
+    fine_solver_paths = mfc.copy_coarse_to_fine(NET, SOLVER)
+   
+    ################ CALLS TO CAFFE ###############
     if last_saved_iter == 0:
         print 'Starting new train'
         call_start()
         subprocess.call(['cp', '/tmp/caffe.INFO', 
                          '/tmp/my_caffe_log.txt'])
+        
+        #for ii, fine_solver_path in enumerate(fine_solver_paths):
+        #    call_start(fine_solver_path)
+        #    subprocess.call(['cp', '/tmp/caffe.INFO', 
+        #                     '/tmp/my_caffe_log' + str(ii) + '.txt'])
+
     else:
-        call_resume(snap_name(last_saved_iter))
-        #~ call_tune(weight_name(last_saved_iter))
-        subprocess.call(['tail -25 /tmp/caffe.INFO >> /tmp/my_caffe_log.txt'], shell=True)
+        coarse_snap = snap_name(last_saved_iter)
+        call_resume(coarse_snap)
+        #####~ call_tune(weight_name(last_saved_iter))
+        subprocess.call('tail -25 /tmp/caffe.INFO >> /tmp/my_caffe_log.txt', shell=True)
+        
+        #for ii, fine_solver_path in enumerate(fine_solver_paths):
+        #    prefix = fine_solver_path.split('_')[-1].split('.prototxt')[0]
+        #    snap_path = coarse_snap.replace('coarse', prefix)
+        #    call_resume(snap_path , fine_solver_path)
+        #    subprocess.call('tail -25 /tmp/caffe.INFO >> /tmp/my_caffe_log' + str(ii) + '.txt', shell=True)
+
+
 print 'DONE'                        
 
 

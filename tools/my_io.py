@@ -167,12 +167,14 @@ def make_db_entry(im_file, out_shape=OUT_SHAPE, perturb=True, mode='train'):
         # Setup up ground truth labels if training data
         y_str = os.path.basename(os.path.dirname(im_file))
         y = le.transform(y_str)
-        datum.label = y
-
+        
+        # TODO: REMEMBER TO CHANGE THIS IF NOT USING COARSE
+        #datum.label = y
         datum.label0 = y   # Regular label
         datum.label1 = sp.fine_to_coarse[y]    # Coarse label
         datum.label2 = sp.coarse_to_fine[sp.fine_to_coarse[y]].index(y)    # Intra label inside coarse
-		
+        datum.label = datum.label1   #### TODO: COARSE LABEL
+
 		#~ # TAXONOMY PARENTS (GABAGE)
         #~ datum.label0 = tax.encode_parent(y_str, 0)
         #~ datum.label1 = tax.encode_parent(y_str, 1)
@@ -296,18 +298,18 @@ def multi_extract(im_files, db_path, backend='lmdb', perturb=True, out_shape=OUT
         
     if mode == 'train' and create_specialists:
         if verbose:
-            print 'Creating specialist db'
+            print 'Creating specialist db...'
         make_specialist_db(db_path, backend=backend, verbose=verbose)
               
     if transfer_feats:
         if verbose:
-            print 'Transfering feats to another db'
+            print 'Transfering feats to another db...'
         feats_db = db_path + '_feats'
         transfer_feats_db(db_path, feats_db, 
                           backend=backend, verbose=verbose)
     if transfer_plbls:
         if verbose:
-            print 'Transfering parent labels to another db'
+            print 'Transfering parent labels to another db...'
         feats_db = db_path + '_lbls'
         transfer_parentlbls_db(db_path, feats_db, 
                           backend=backend, verbose=verbose)
@@ -451,11 +453,14 @@ def make_specialist_db(core_db, backend='lmdb', verbose=False):
     # Move entries in core to appropriate specialist db
     tic = time()
     for k, v in c:
-		datum = caffe_pb2.Datum()
-		datum.ParseFromString(v)
-		l = datum.label
-		sp_group = sp.fine_to_coarse[l]
-		txn_sp_d[sp_group].put(k, v)
+        datum = caffe_pb2.Datum()
+        datum.ParseFromString(v)
+        l = datum.label
+        sp_group = sp.fine_to_coarse[l]
+        # Change the actual label instead of this multi label BS
+        datum.label = datum.label2
+        v_sp = datum.SerializeToString()
+        txn_sp_d[sp_group].put(k, v_sp)
 
     # Write/commit and close
     if backend == 'leveldb':
@@ -500,6 +505,7 @@ def transfer_splbls_db(core_db, sp_db, backend='lmdb', verbose=False):
         extra_lbls = np.array([
             datum.label0,
             datum.label1,
+            datum.label2,
         ])[:, None, None]
         datum.channels, datum.height, datum.width = extra_lbls.shape
         datum.data = extra_lbls.astype('uint8').tobytes()

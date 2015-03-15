@@ -13,11 +13,14 @@ import pickle
 import numpy as np
 
 curdir, _ = os.path.split(__file__)
+# This naive prediction obtained from Score (CV sanity check).ipynb
+# uses this model for prediction (no rotation augmention)
+# zoomed_out_vanilla_smallmaxout/simple_fold0_iter_3000.caffemodel
 PRED_PATH = './naive_prediction.p'
 f_path_pred = os.path.join(curdir, PRED_PATH)
 
 
-def make_cluster_map(damping=0.98):
+def make_cluster_map(damping=0.992):
 	test_labels, prediction = pickle.load(open(f_path_pred, 'rb'))
 	prob_conf = np.zeros((121, 121))
 	for l in range(121):
